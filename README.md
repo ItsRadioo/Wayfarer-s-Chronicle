@@ -1,46 +1,34 @@
-# Wayfarer's Chronicle
+# Wayfarer's Chronicle — Living Chronicle Edition
 
-A fully offline solo fantasy adventure web app.
+A fully offline solo fantasy roleplaying adventure web app.
 
 ## Run it
 
-For the service worker and installable offline mode to work, serve the folder through a small local web server.
+Extract the folder, open Command Prompt or Terminal inside it, and run:
 
-### Windows
-Open Command Prompt in this folder and run:
+Windows:
 
     py -m http.server 8080
 
-Then open:
-
-    http://localhost:8080
-
-### Mac or Linux
+Mac/Linux:
 
     python3 -m http.server 8080
 
-Then open:
+Open:
 
     http://localhost:8080
 
-The game itself uses no external libraries, fonts, APIs, or internet assets.
+## What changed in the Living Chronicle edition
 
-## Included systems
+- Choices now create linked follow-up scenes instead of jumping to random encounters.
+- Settlement investigations contain persistent explorable locations.
+- Skill checks produce multi-paragraph readable outcomes.
+- Failed checks create consequences and altered routes rather than empty failure messages.
+- Acts advance only when major story objectives are resolved.
+- Named NPCs remember meetings, notes, and disposition.
+- Places, objectives, completed quests, and decisions are recorded in a journal.
+- Reputation, mercy, suspicion, clues, and previous decisions persist.
+- Full-screen animated physical dice appear for every roll.
+- Combat, XP, inventory, class resources, death saves, levelling, autosave, and offline support remain included.
 
-- Adventure setup prompts
-- Seeded procedural story generation
-- Character creation with six classes and six ancestries
-- Standard-array ability score assignment
-- Skills, backgrounds, armour class, hit points, class resources, inventory and XP
-- Animated on-screen dice
-- Skill checks and difficulty classes
-- Initiative and turn-based combat
-- Critical hits
-- Healing, class abilities, death saving throws and levelling
-- Local save/load and autosave
-- Installable Progressive Web App support
-- Responsive desktop and mobile layout
-
-## Important design note
-
-This project uses original setting text and a 5e-compatible rules structure. It does not copy proprietary adventure text, character art, or non-open rulebook content.
+The app uses no external libraries, APIs, fonts, or internet assets.

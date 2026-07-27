@@ -1,4 +1,4 @@
-const CACHE = "wayfarers-chronicle-v1";
+const CACHE = "wayfarers-chronicle-v2";
 const ASSETS = [
   "./",
   "./index.html",

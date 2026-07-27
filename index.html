@@ -293,8 +293,17 @@
             </div>
 
             <div class="sidebar-section">
-              <h3>Quest</h3>
+              <div class="sidebar-title-row">
+                <h3>Journal</h3>
+                <button id="openJournalBtn" class="tiny-button" type="button">Open</button>
+              </div>
               <p id="questText" class="muted"></p>
+              <ul id="objectiveList" class="objective-list"></ul>
+            </div>
+
+            <div class="sidebar-section">
+              <h3>World Memory</h3>
+              <div id="worldMemory" class="world-memory"></div>
             </div>
           </aside>
 
@@ -361,6 +370,21 @@
       </form>
     </dialog>
 
+    <dialog id="journalDialog">
+      <form method="dialog" class="dialog-card journal-dialog-card">
+        <button class="dialog-close" aria-label="Close">×</button>
+        <p class="eyebrow">THE LIVING CHRONICLE</p>
+        <h2>Journal & World Memory</h2>
+        <div class="journal-tabs">
+          <button type="button" class="journal-tab active" data-journal-tab="quests">Quests</button>
+          <button type="button" class="journal-tab" data-journal-tab="people">People</button>
+          <button type="button" class="journal-tab" data-journal-tab="places">Places</button>
+          <button type="button" class="journal-tab" data-journal-tab="chronicle">Chronicle</button>
+        </div>
+        <div id="journalContent" class="journal-content"></div>
+      </form>
+    </dialog>
+
     <dialog id="messageDialog">
       <form method="dialog" class="dialog-card compact-dialog">
         <h2 id="messageTitle">Notice</h2>
@@ -368,6 +392,22 @@
         <button class="primary">Continue</button>
       </form>
     </dialog>
+
+    <div id="diceStage" class="dice-stage" aria-hidden="true">
+      <div class="dice-stage-vignette"></div>
+      <div class="dice-stage-copy">
+        <span id="stageRollLabel">ABILITY CHECK</span>
+        <strong id="stageRollFormula">1d20</strong>
+      </div>
+      <div id="physicalDie" class="physical-die die-d20">
+        <div class="poly-face face-a"><span>20</span></div>
+        <div class="poly-face face-b"></div>
+        <div class="poly-face face-c"></div>
+        <div class="poly-face face-d"></div>
+      </div>
+      <div id="stageResult" class="stage-result"></div>
+      <div class="dice-shadow"></div>
+    </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>
