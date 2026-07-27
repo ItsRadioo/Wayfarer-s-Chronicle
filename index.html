@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#171310">
+  <meta name="description" content="A fully offline solo fantasy roleplaying adventure generator.">
+  <title>Wayfarer's Chronicle</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">W</div>
+        <div>
+          <h1>Wayfarer's Chronicle</h1>
+          <p>Offline Solo Fantasy Adventure</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="saveBtn" class="ghost" type="button">Save</button>
+        <button id="loadBtn" class="ghost" type="button">Load</button>
+        <button id="resetBtn" class="danger ghost" type="button">New Chronicle</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="screen-home" class="screen active">
+        <div class="hero panel">
+          <div class="hero-copy">
+            <p class="eyebrow">A STORY WRITTEN BY YOUR CHOICES</p>
+            <h2>Your next adventure begins at the edge of the map.</h2>
+            <p>
+              Create a hero, shape the world, and play through a procedural fantasy
+              campaign with exploration, skill checks, combat, treasure, and consequences.
+            </p>
+            <div class="button-row">
+              <button id="beginBtn" class="primary large" type="button">Begin a New Adventure</button>
+              <button id="continueBtn" class="secondary large hidden" type="button">Continue Saved Adventure</button>
+            </div>
+          </div>
+          <div class="hero-art" aria-hidden="true">
+            <div class="moon"></div>
+            <div class="mountains"></div>
+            <div class="tower"></div>
+            <div class="traveller"></div>
+          </div>
+        </div>
+
+        <div class="feature-grid">
+          <article class="panel feature">
+            <span class="feature-icon">✦</span>
+            <h3>Procedural Story</h3>
+            <p>Scenes, locations, threats, allies, and rewards respond to your choices.</p>
+          </article>
+          <article class="panel feature">
+            <span class="feature-icon">⚔</span>
+            <h3>5e-Compatible Combat</h3>
+            <p>Initiative, armour class, attacks, saving throws, conditions, and death saves.</p>
+          </article>
+          <article class="panel feature">
+            <span class="feature-icon">◇</span>
+            <h3>Offline First</h3>
+            <p>Install it on your device and play without an internet connection.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="screen-setup" class="screen">
+        <div class="section-heading">
+          <p class="eyebrow">CHAPTER ZERO</p>
+          <h2>Shape the Chronicle</h2>
+          <p>These choices guide the adventure generator.</p>
+        </div>
+
+        <form id="setupForm" class="panel form-card">
+          <div class="form-grid">
+            <label>
+              Adventure Tone
+              <select id="tone">
+                <option value="heroic">Heroic fantasy</option>
+                <option value="mysterious">Dark mystery</option>
+                <option value="whimsical">Whimsical wonder</option>
+                <option value="grim">Grim survival</option>
+              </select>
+            </label>
+
+            <label>
+              Primary Setting
+              <select id="setting">
+                <option value="frontier">Untamed frontier</option>
+                <option value="city">Ancient city</option>
+                <option value="wilds">Deep wilderness</option>
+                <option value="isles">Stormbound isles</option>
+                <option value="underdark">Forgotten depths</option>
+              </select>
+            </label>
+
+            <label>
+              Main Threat
+              <select id="threat">
+                <option value="cult">A secretive cult</option>
+                <option value="undead">Restless dead</option>
+                <option value="beasts">Monstrous beasts</option>
+                <option value="warband">A ruthless warband</option>
+                <option value="arcane">Unstable magic</option>
+              </select>
+            </label>
+
+            <label>
+              Story Length
+              <select id="length">
+                <option value="short">Short quest — about 6 scenes</option>
+                <option value="medium" selected>Full adventure — about 10 scenes</option>
+                <option value="long">Long campaign — about 16 scenes</option>
+              </select>
+            </label>
+
+            <label>
+              Difficulty
+              <select id="difficulty">
+                <option value="story">Story-focused</option>
+                <option value="standard" selected>Standard</option>
+                <option value="dangerous">Dangerous</option>
+              </select>
+            </label>
+
+            <label>
+              Seed
+              <input id="seed" type="text" maxlength="30" placeholder="Optional shared story seed">
+            </label>
+          </div>
+
+          <fieldset>
+            <legend>What should the adventure emphasize?</legend>
+            <div class="check-grid">
+              <label class="check"><input type="checkbox" value="combat" checked> Combat</label>
+              <label class="check"><input type="checkbox" value="exploration" checked> Exploration</label>
+              <label class="check"><input type="checkbox" value="social" checked> Social encounters</label>
+              <label class="check"><input type="checkbox" value="puzzles"> Puzzles</label>
+              <label class="check"><input type="checkbox" value="treasure" checked> Treasure</label>
+              <label class="check"><input type="checkbox" value="companions"> Companions</label>
+            </div>
+          </fieldset>
+
+          <div class="button-row end">
+            <button type="button" data-nav="home" class="ghost">Back</button>
+            <button type="submit" class="primary">Create Your Hero</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="screen-character" class="screen">
+        <div class="section-heading">
+          <p class="eyebrow">FORGE A HERO</p>
+          <h2>Character Creation</h2>
+          <p>Build a level 1 adventurer using familiar fantasy roleplaying rules.</p>
+        </div>
+
+        <form id="characterForm" class="character-layout">
+          <div class="panel form-card">
+            <div class="form-grid">
+              <label>
+                Character Name
+                <input id="charName" type="text" required maxlength="30" placeholder="A name worthy of legend">
+              </label>
+
+              <label>
+                Ancestry
+                <select id="ancestry">
+                  <option value="human">Human</option>
+                  <option value="elf">Elf</option>
+                  <option value="dwarf">Dwarf</option>
+                  <option value="halfling">Halfling</option>
+                  <option value="orc">Orc</option>
+                  <option value="tiefling">Tiefling</option>
+                </select>
+              </label>
+
+              <label>
+                Class
+                <select id="className">
+                  <option value="fighter">Fighter</option>
+                  <option value="rogue">Rogue</option>
+                  <option value="wizard">Wizard</option>
+                  <option value="cleric">Cleric</option>
+                  <option value="ranger">Ranger</option>
+                  <option value="barbarian">Barbarian</option>
+                </select>
+              </label>
+
+              <label>
+                Background
+                <select id="background">
+                  <option value="soldier">Soldier</option>
+                  <option value="scholar">Scholar</option>
+                  <option value="outlander">Outlander</option>
+                  <option value="criminal">Criminal</option>
+                  <option value="acolyte">Acolyte</option>
+                  <option value="artisan">Artisan</option>
+                </select>
+              </label>
+            </div>
+
+            <fieldset>
+              <legend>Ability Scores</legend>
+              <p class="muted">Assign the standard array: 15, 14, 13, 12, 10, 8.</p>
+              <div id="abilityGrid" class="ability-grid"></div>
+              <div class="button-row">
+                <button id="recommendedStatsBtn" type="button" class="secondary">Use Recommended Scores</button>
+                <button id="randomStatsBtn" type="button" class="ghost">Random Assignment</button>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Trained Skills</legend>
+              <p id="skillHelp" class="muted">Choose two skills.</p>
+              <div id="skillGrid" class="check-grid skill-grid"></div>
+            </fieldset>
+
+            <label>
+              Character Ideal
+              <textarea id="ideal" rows="3" maxlength="160" placeholder="What belief drives your hero?"></textarea>
+            </label>
+
+            <div class="button-row end">
+              <button type="button" data-nav="setup" class="ghost">Back</button>
+              <button type="submit" class="primary">Enter the Story</button>
+            </div>
+          </div>
+
+          <aside class="panel sheet-preview">
+            <p class="eyebrow">CHARACTER SHEET</p>
+            <h3 id="previewName">Unnamed Hero</h3>
+            <p id="previewIdentity">Human Fighter • Soldier</p>
+            <div class="vitals">
+              <div><span>AC</span><strong id="previewAC">16</strong></div>
+              <div><span>HP</span><strong id="previewHP">12</strong></div>
+              <div><span>Speed</span><strong id="previewSpeed">30</strong></div>
+              <div><span>Proficiency</span><strong>+2</strong></div>
+            </div>
+            <div id="previewStats" class="preview-stats"></div>
+            <div class="sheet-block">
+              <span>Primary Attack</span>
+              <strong id="previewAttack">Longsword +5</strong>
+              <small id="previewDamage">1d8 + 3 slashing</small>
+            </div>
+            <div class="sheet-block">
+              <span>Class Feature</span>
+              <strong id="previewFeature">Second Wind</strong>
+              <small id="previewFeatureText">Recover 1d10 + level hit points once per rest.</small>
+            </div>
+          </aside>
+        </form>
+      </section>
+
+      <section id="screen-game" class="screen">
+        <div class="game-layout">
+          <aside class="panel character-sidebar">
+            <div class="mini-sheet-header">
+              <div>
+                <p class="eyebrow">LEVEL <span id="sideLevel">1</span></p>
+                <h2 id="sideName">Hero</h2>
+                <p id="sideIdentity">Human Fighter</p>
+              </div>
+              <button id="openSheetBtn" class="icon-button" title="View character sheet">☰</button>
+            </div>
+
+            <div class="hp-block">
+              <div class="hp-label">
+                <span>Hit Points</span>
+                <strong><span id="sideHP">10</span>/<span id="sideMaxHP">10</span></strong>
+              </div>
+              <div class="meter"><div id="hpMeter"></div></div>
+            </div>
+
+            <div class="compact-vitals">
+              <div><span>AC</span><strong id="sideAC">14</strong></div>
+              <div><span>XP</span><strong id="sideXP">0</strong></div>
+              <div><span>Gold</span><strong id="sideGold">10</strong></div>
+            </div>
+
+            <div class="sidebar-section">
+              <h3>Resources</h3>
+              <div id="resourceList" class="resource-list"></div>
+            </div>
+
+            <div class="sidebar-section">
+              <h3>Inventory</h3>
+              <ul id="inventoryList" class="inventory-list"></ul>
+            </div>
+
+            <div class="sidebar-section">
+              <h3>Quest</h3>
+              <p id="questText" class="muted"></p>
+            </div>
+          </aside>
+
+          <section class="story-column">
+            <div class="panel chapter-card">
+              <div class="chapter-meta">
+                <span id="chapterLabel">CHAPTER I</span>
+                <span id="locationLabel">THE CROSSROADS</span>
+              </div>
+              <h2 id="sceneTitle">A Road Untravelled</h2>
+              <div id="storyText" class="story-text"></div>
+              <div id="checkResult" class="result-box hidden"></div>
+              <div id="choiceList" class="choice-list"></div>
+            </div>
+
+            <div id="combatPanel" class="panel combat-panel hidden">
+              <div class="combat-header">
+                <div>
+                  <p class="eyebrow">COMBAT ENCOUNTER</p>
+                  <h2 id="enemyName">Enemy</h2>
+                </div>
+                <div class="enemy-hp">
+                  <span>HP</span>
+                  <strong><span id="enemyHP">8</span>/<span id="enemyMaxHP">8</span></strong>
+                </div>
+              </div>
+              <div class="meter enemy-meter"><div id="enemyHpMeter"></div></div>
+              <p id="combatLog" class="combat-log">Roll initiative.</p>
+              <div id="combatActions" class="combat-actions"></div>
+            </div>
+          </section>
+
+          <aside class="panel dice-sidebar">
+            <p class="eyebrow">DICE TRAY</p>
+            <div id="dieVisual" class="die d20">
+              <div class="die-number">20</div>
+            </div>
+            <div id="diceFormula" class="dice-formula">d20</div>
+            <div id="diceOutcome" class="dice-outcome">Ready</div>
+            <div class="quick-dice">
+              <button data-die="4">d4</button>
+              <button data-die="6">d6</button>
+              <button data-die="8">d8</button>
+              <button data-die="10">d10</button>
+              <button data-die="12">d12</button>
+              <button data-die="20">d20</button>
+            </div>
+            <div class="roll-history">
+              <h3>Recent Rolls</h3>
+              <ol id="rollHistory"></ol>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="sheetDialog">
+      <form method="dialog" class="dialog-card">
+        <button class="dialog-close" aria-label="Close">×</button>
+        <p class="eyebrow">CHARACTER SHEET</p>
+        <h2 id="dialogName">Hero</h2>
+        <p id="dialogIdentity"></p>
+        <div id="dialogContent"></div>
+      </form>
+    </dialog>
+
+    <dialog id="messageDialog">
+      <form method="dialog" class="dialog-card compact-dialog">
+        <h2 id="messageTitle">Notice</h2>
+        <p id="messageText"></p>
+        <button class="primary">Continue</button>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

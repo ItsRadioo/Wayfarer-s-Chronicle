@@ -1,0 +1,10 @@
+{
+  "name": "Wayfarer's Chronicle",
+  "short_name": "Wayfarer",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0e0c0a",
+  "theme_color": "#171310",
+  "description": "A fully offline solo fantasy roleplaying adventure generator.",
+  "icons": []
+}
