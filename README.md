@@ -1,34 +1,30 @@
-# Wayfarer's Chronicle — Living Chronicle Edition
+# Wayfarer’s Chronicle — Deliberate Choice Edition
 
-A fully offline solo fantasy roleplaying adventure web app.
+A fully offline solo fantasy roleplaying web game.
 
-## Run it
+## Core interaction rule
 
-Extract the folder, open Command Prompt or Terminal inside it, and run:
+Every interaction now follows this sequence:
 
-Windows:
+1. The player makes a choice.
+2. Any required animated die roll completes.
+3. A dedicated result page explains what physically happened.
+4. Mechanical changes are listed explicitly.
+5. The game pauses indefinitely for reading.
+6. The player presses a clearly labelled button to continue or begin combat.
+
+The game never advances a scene on a timer after a choice. Failed checks can still cost HP, position, trust, time, or opportunity, but the cause is described and the player always receives a meaningful consequence, partial clue, changed route, or new tactical situation.
+
+## Run locally
+
+Extract the folder. From inside it run:
 
     py -m http.server 8080
 
-Mac/Linux:
-
-    python3 -m http.server 8080
-
-Open:
+Then open:
 
     http://localhost:8080
 
-## What changed in the Living Chronicle edition
+Mac/Linux may use `python3 -m http.server 8080`.
 
-- Choices now create linked follow-up scenes instead of jumping to random encounters.
-- Settlement investigations contain persistent explorable locations.
-- Skill checks produce multi-paragraph readable outcomes.
-- Failed checks create consequences and altered routes rather than empty failure messages.
-- Acts advance only when major story objectives are resolved.
-- Named NPCs remember meetings, notes, and disposition.
-- Places, objectives, completed quests, and decisions are recorded in a journal.
-- Reputation, mercy, suspicion, clues, and previous decisions persist.
-- Full-screen animated physical dice appear for every roll.
-- Combat, XP, inventory, class resources, death saves, levelling, autosave, and offline support remain included.
-
-The app uses no external libraries, APIs, fonts, or internet assets.
+No external library, API, font, or internet asset is required.

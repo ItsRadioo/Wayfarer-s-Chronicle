@@ -584,16 +584,46 @@
     if (choice.action==="check") {
       await resolveCheck(choice);
     } else if (choice.action==="combat") {
-      startCombat(false, false);
+      presentDecisionResult({
+        success:true,
+        heading:"You Commit to the Fight",
+        summary:"You step into the open and force the hidden enemy to reveal itself.",
+        paragraphs:[
+          "The movement in the shadows resolves into armed figures using the terrain to close around you. You see where they are positioned, how they intend to attack, and why retreat will become harder once they advance.",
+          "Your decision has not skipped directly to initiative. You chose to confront them, and the confrontation now begins on the ground described in the scene."
+        ],
+        changes:["Combat begins", "Enemy position revealed"],
+        next:{label:"Roll initiative", detail:"Begin combat when you are ready", action:"beginCombat", finale:false, advantage:false}
+      });
     } else if (choice.action==="finalCombat") {
-      startCombat(true, false);
+      presentDecisionResult({
+        success:true,
+        heading:"The Final Confrontation Begins",
+        summary:"You reject the enemy's design and move to break the ritual by force.",
+        paragraphs:[
+          "The ritual chamber reacts as you cross its boundary. Sigils brighten, followers scatter toward prepared positions, and the architect of the threat turns its full attention toward you.",
+          "Everything learned during the adventure now becomes part of this confrontation. When you continue, initiative will be rolled and the final battle will begin."
+        ],
+        changes:["Final combat unlocked", "The ritual is now contested"],
+        next:{label:"Roll final initiative", detail:"Begin the final battle when you are ready", action:"beginCombat", finale:true, advantage:false}
+      });
+    } else if (choice.action==="beginCombat") {
+      startCombat(Boolean(choice.finale), Boolean(choice.advantage));
     } else if (choice.action==="rest") {
-      await takeRest();
-      generateScene();
+      await resolveRestChoice(choice);
     } else if (choice.action==="momentum") {
       state.flags.clues += 1;
-      showResult(true, "You move quickly enough to gain ground on your enemies.");
-      setTimeout(()=>generateScene(), 1200);
+      presentDecisionResult({
+        success:true,
+        heading:"You Choose Speed Over Comfort",
+        summary:"You leave before the trail can cool and gain ground on whoever passed this way.",
+        paragraphs:[
+          "You tighten your equipment, leave the shelter behind, and follow the freshest signs without spending time searching the area. The pace is uncomfortable, but it prevents the distant tracks from fading into the surrounding terrain.",
+          "Near the next rise, you find a recently broken branch and warm ash beneath scattered soil. Your quarry is closer than it expected you to be."
+        ],
+        changes:["Investigation progress +1", "You gain momentum", "No supplies recovered from the shelter"],
+        next:{label:"Follow the fresh signs", detail:"Continue from the evidence you just found", action:"continue"}
+      });
     } else if (choice.action==="continue") {
       generateScene();
     }
@@ -612,14 +642,7 @@
     const roll = await rollDice(`1d20${bonus>=0?"+":""}${bonus}`, `${choice.skill} check`);
     const success = roll.total >= choice.dc || roll.natural===20;
     const criticalFailure = roll.natural===1;
-
-    if (success) {
-      showResult(true, `Success — ${roll.total} against DC ${choice.dc}.`);
-      applyOutcome(choice.outcome, true);
-    } else {
-      showResult(false, `${criticalFailure ? "Critical failure" : "Failure"} — ${roll.total} against DC ${choice.dc}.`);
-      applyOutcome(choice.outcome, false);
-    }
+    resolveNarrativeOutcome(choice, {success, criticalFailure, roll, bonus});
   }
 
   function showResult(success, text) {
@@ -628,47 +651,320 @@
     box.textContent = text;
   }
 
-  function applyOutcome(outcome, success) {
-    if (success) {
-      if (["clue","riskyClue","safePassage","finalSocial"].includes(outcome)) {
-        state.flags.clues += outcome==="finalSocial" ? 2 : 1;
-        state.character.xp += 20;
-      }
-      if (outcome==="treasure") awardTreasure();
-      if (outcome==="combatAdvantage") {
-        setTimeout(()=>startCombat(false, true), 900);
-        return;
-      }
-      if (outcome==="avoidCombat") {
-        state.character.xp += 25;
-      }
-      if (outcome==="finalAdvantage" || outcome==="finalSocial") {
-        setTimeout(()=>startCombat(true, true), 900);
-        return;
+  function sceneContext() {
+    const scene=state.currentScene || {};
+    return {
+      title:scene.title || "the current scene",
+      location:scene.location || "the road",
+      threat:threatData[state.setup.threat]?.name || "the threat",
+      detail:(scene.text || [])[0] || "The situation is uncertain."
+    };
+  }
+
+  function resolveNarrativeOutcome(choice, result) {
+    const ctx=sceneContext();
+    const rollText=`${choice.skill}: ${result.roll.total} against DC ${choice.dc}`;
+    let data=buildOutcomeNarrative(choice, result, ctx);
+
+    if (result.success) {
+      state.character.xp += data.xp ?? 20;
+      if (data.clues) state.flags.clues += data.clues;
+      if (data.item) {
+        state.character.inventory.push(data.item);
+        if (data.gold) state.character.gold += data.gold;
       }
     } else {
       state.flags.failures++;
-      if (["combatAdvantage","avoidCombat"].includes(outcome)) {
-        setTimeout(()=>startCombat(false, false), 900);
-        return;
-      }
-      if (["finalAdvantage","finalSocial"].includes(outcome)) {
-        setTimeout(()=>startCombat(true, false), 900);
-        return;
-      }
-      const damage = Math.max(1, rollRaw(4));
-      state.character.hp = Math.max(1, state.character.hp-damage);
-      showToast(`The setback costs ${damage} HP.`);
+      const damage=data.damage || 0;
+      if (damage) state.character.hp=Math.max(1,state.character.hp-damage);
     }
+
     renderSidebar();
-    setTimeout(()=>generateScene(), 1400);
+    presentDecisionResult({
+      success:result.success,
+      heading:data.heading,
+      summary:data.summary,
+      rollText,
+      paragraphs:data.paragraphs,
+      changes:data.changes,
+      next:data.next
+    });
   }
 
-  function awardTreasure() {
-    const treasure = pick(treasureTable);
-    state.character.inventory.push(cap(treasure.name));
-    if (treasure.effect==="gold") state.character.gold += treasure.value;
-    showToast(`Found: ${cap(treasure.name)}`);
+  function buildOutcomeNarrative(choice, result, ctx) {
+    const success=result.success;
+    const critical=result.criticalFailure;
+    const damage=!success ? (critical ? Math.max(2,rollRaw(4)) : Math.max(0,rollRaw(3)-1)) : 0;
+    const commonNext={label:"Continue from this result",detail:"Move on only after you have finished reading",action:"continue"};
+    const combatNext=(advantage=false,finale=false)=>({label:"Roll initiative",detail:advantage?"Begin combat with the advantage you earned":"Face the fight created by this outcome",action:"beginCombat",advantage,finale});
+    const injury = damage ? `During the attempt, ${injuryCause(choice.skill,ctx)} This costs ${damage} HP.` : "The setback costs time and position rather than hit points.";
+
+    const successMap={
+      clue:{
+        heading:"The Evidence Gives Way",
+        summary:`Your ${choice.skill.toLowerCase()} check reveals information that was present in the scene all along.`,
+        paragraphs:[
+          `You slow down and work from what can actually be observed at ${ctx.location}. A disturbed surface, an inconsistent account, or a repeated mark provides the first reliable pattern.`,
+          `The evidence points toward ${ctx.threat}. More importantly, it explains the connection: someone passed through this location recently and attempted to conceal either their route or their purpose.`,
+          `You record the physical sign and the conclusion separately. That means the player knows what was found, how it was interpreted, and why the investigation advances.`
+        ],
+        changes:["Major clue recorded","Investigation progress +1","+20 XP"], clues:1, next:commonNext
+      },
+      social:{
+        heading:"A Reluctant Voice Opens",
+        summary:"The conversation produces a specific lead rather than a vague promise of information.",
+        paragraphs:[
+          `You explain enough of your purpose to make silence feel more dangerous than cooperation. The local glances toward the nearest doorway before answering.`,
+          `They saw strangers moving through ${ctx.location} after ordinary traffic had stopped. One carried a token associated with ${ctx.threat}; another repeatedly checked a route leading away from the public road.`,
+          `The witness cannot explain the entire plot, but gives you a verifiable detail: a time, direction, and identifying mark that can guide the next stage of the investigation.`
+        ],
+        changes:["Witness account recorded","New route identified","+20 XP"], clues:1, next:commonNext
+      },
+      riskyClue:{
+        heading:"Pressure Produces an Answer",
+        summary:"You obtain the information, but the manner of obtaining it changes how people regard you.",
+        paragraphs:[
+          `You make it clear that withholding the truth will not protect anyone. The witness finally describes a concealed meeting connected to ${ctx.threat}.`,
+          `The answer is useful: a destination, a symbol, and the name of someone who arranged passage through ${ctx.location}.`,
+          `The witness leaves afraid of both the enemy and you. The clue advances the investigation, while your forceful approach creates a social cost that may matter later.`
+        ],
+        changes:["Major clue recorded","Local trust decreased","Investigation progress +1","+20 XP"], clues:1, next:commonNext
+      },
+      combatAdvantage:{
+        heading:"You Read the Battlefield First",
+        summary:"Your observation changes the opening position of the coming fight.",
+        paragraphs:[
+          `Before exposing yourself, you identify the enemy's intended killing ground. Their strongest position depends on you entering through the obvious approach.`,
+          `A second route provides cover and places you nearer the weakest attacker. You also spot the signal the ambushers planned to use to begin their assault.`,
+          `When combat starts, you will act with the advantage created by this specific preparation—not because the game silently granted a bonus.`
+        ],
+        changes:["Enemy ambush exposed","Initiative advantage gained","+20 XP"], next:combatNext(true,false)
+      },
+      avoidCombat:{
+        heading:"You Pass Beyond the Trap",
+        summary:"You avoid the immediate battle and still recover useful information.",
+        paragraphs:[
+          `You wait for the watchers to look toward the obvious route, then move through the blind area between their positions.`,
+          `From close range, you overhear enough to learn where the group intends to report next. One speaker mentions ${ctx.threat} and a rendezvous beyond ${ctx.location}.`,
+          `Avoiding combat preserves your HP while still producing a destination and a reason to pursue it.`
+        ],
+        changes:["Combat avoided","Enemy rendezvous discovered","+25 XP"], clues:1, xp:25, next:commonNext
+      },
+      treasure:{
+        heading:"The Search Reveals More Than Supplies",
+        summary:"You find a tangible item and evidence explaining why it was hidden here.",
+        paragraphs:[
+          `You test loose boards, disturbed stone, and spaces that do not match the surrounding construction. One concealed compartment opens after you release a simple pressure catch.`,
+          `Inside is a usable item alongside traces showing that the compartment was accessed recently by someone connected to ${ctx.threat}.`,
+          `The object remains in your inventory and the hiding place becomes part of the story, rather than a reward appearing without explanation.`
+        ],
+        changes:[], xp:20, next:commonNext, treasure:true
+      },
+      safePassage:{
+        heading:"Stillness Reveals the Safe Route",
+        summary:"Listening instead of searching exposes the danger and a way around it.",
+        paragraphs:[
+          `You stop touching the environment and let its ordinary rhythm return. A repeated scrape comes from one section of ground whenever the wind drops.`,
+          `The sound belongs to a concealed trigger line. Following it reveals where the trap ends and where its builders travelled safely around it.`,
+          `You mark the bypass and recover a directional sign tied to ${ctx.threat}. The next route is safer because you understand what made the original route dangerous.`
+        ],
+        changes:["Trap identified","Safe route unlocked","Major clue recorded","+20 XP"], clues:1, next:commonNext
+      },
+      finalAdvantage:{
+        heading:"The Ritual's Structure Becomes Clear",
+        summary:"Your accumulated knowledge produces a concrete advantage in the final battle.",
+        paragraphs:[
+          `You recognize that the ritual is stabilized by three linked anchors rather than the central focus itself. Destroying the focus first would release the stored energy.`,
+          `Instead, you identify the weakest anchor and the moment in its cycle when it can be broken safely. The enemy will have to divide its attention between you and the failing ritual.`,
+          `The final fight begins with advantage because of a discovered mechanism and a deliberate action—not an unexplained modifier.`
+        ],
+        changes:["Ritual weakness identified","Final initiative advantage gained","+20 XP"], clues:1, next:combatNext(true,true)
+      },
+      finalSocial:{
+        heading:"The Enemy's Unity Fractures",
+        summary:"Your appeal creates visible hesitation among the enemy's followers.",
+        paragraphs:[
+          `You name the people harmed along the way and repeat facts the followers were told no outsider could know. Several look toward one another instead of their leader.`,
+          `One lowers a weapon. Another steps away from an anchor point. The architect of the ritual is forced to threaten its own allies to maintain control.`,
+          `The final battle remains necessary, but the enemy begins it distracted and with fewer willing supporters.`
+        ],
+        changes:["Enemy followers shaken","Final initiative advantage gained","Investigation progress +2","+20 XP"], clues:2, next:combatNext(true,true)
+      }
+    };
+
+    const failureMap={
+      clue:{
+        heading:"The Search Draws Blood, but Not a Blank",
+        summary:"The attempt goes badly; the physical cost and the partial information are both explained.",
+        paragraphs:[
+          `You follow what appears to be the strongest sign, but the surface gives way beneath your hand. ${injury}`,
+          `The disturbance destroys the clearest part of the evidence. Even so, the material underneath proves that someone recently concealed a passage or object at ${ctx.location}.`,
+          `You do not learn exactly where the route leads, but you learn what kind of concealment was used and that the scene was deliberately altered. The investigation continues with incomplete information rather than no information.`
+        ],
+        changes:[damage?`-${damage} HP`:"Time lost","Partial clue recorded","Enemy concealment confirmed"], clues:1, next:commonNext
+      },
+      social:{
+        heading:"The Witness Withdraws",
+        summary:"Your approach fails to earn trust, but their reaction still reveals something useful.",
+        paragraphs:[
+          `Your questions arrive too quickly. The local ends the conversation and moves toward a crowded doorway where you cannot press without causing a scene.`,
+          `Before leaving, they instinctively hide a token bearing the mark of ${ctx.threat}. Their refusal tells you they possess direct knowledge and fear someone nearby.`,
+          `You gain no statement, but you identify a connected witness and learn that the enemy's influence reaches into this location.`
+        ],
+        changes:["Witness trust decreased","Connected token observed","A future conversation may require proof"], next:commonNext
+      },
+      riskyClue:{
+        heading:"Pressure Creates Resistance",
+        summary:"The intimidation fails and makes the local community more suspicious of you.",
+        paragraphs:[
+          `The witness decides that fear of you is easier to escape than fear of ${ctx.threat}. They call attention to the confrontation and refuse to answer further.`,
+          `During the exchange, however, they deny visiting a location you never mentioned. The mistake exposes one place connected to the secret they are protecting.`,
+          `You leave with a partial lead, but local trust has worsened and future social checks here may become harder.`
+        ],
+        changes:["Partial location clue recorded","Local trust decreased","Future social resistance increased"], next:commonNext
+      },
+      combatAdvantage:{
+        heading:"The Ambush Notices You First",
+        summary:"Your attempt to improve your position exposes you and explains why combat begins without advantage.",
+        paragraphs:[
+          `You move toward what looks like high ground, but a concealed lookout was placed specifically to watch that approach. A warning whistle cuts through ${ctx.location}.`,
+          `${injury}`,
+          `The enemy leaves cover and closes before you can reposition. You now know where the lookout was and how the ambush was arranged, but combat begins on equal or unfavourable terms.`
+        ],
+        changes:[damage?`-${damage} HP`:"Position lost","Enemy formation revealed","Combat begins without advantage"], next:combatNext(false,false)
+      },
+      avoidCombat:{
+        heading:"The Escape Route Closes",
+        summary:"The attempted bypass leads into the enemy's containment plan.",
+        paragraphs:[
+          `The cover you choose is part of the ambush. Once you enter it, figures rise on both sides and cut off the way back.`,
+          `${injury}`,
+          `The failure explains the coming fight: the enemy anticipated a stealthy escape and deliberately left this route open as bait.`
+        ],
+        changes:[damage?`-${damage} HP`:"Escape route lost","Enemy trap understood","Combat begins"], next:combatNext(false,false)
+      },
+      treasure:{
+        heading:"The Cache Is Trapped",
+        summary:"You trigger the protection around the hiding place, but recover a lesser item and information about its owner.",
+        paragraphs:[
+          `A false panel shifts under your weight and releases a concealed spring. ${injury}`,
+          `The main contents are ruined or removed before you can secure them, but a small surviving object bears the symbol of ${ctx.threat}.`,
+          `You recover enough to prove who used the cache and why it was protected, though the better reward is lost.`
+        ],
+        changes:[damage?`-${damage} HP`:"Time lost","Minor quest item recovered","Cache owner identified"], clues:1, next:commonNext
+      },
+      safePassage:{
+        heading:"The Quiet Sound Was Bait",
+        summary:"The suspected safe route is deliberately designed to attract careful explorers.",
+        paragraphs:[
+          `You trace the repeated sound to a narrow path, but the sound comes from a weighted lure rather than an accidental mechanism. ${injury}`,
+          `The trap's design still tells you something: its builders expected investigators who listen before moving, suggesting trained or experienced opposition.`,
+          `You mark the dangerous route and identify a second, less obvious direction used to reset the lure.`
+        ],
+        changes:[damage?`-${damage} HP`:"Time lost","Trap method learned","Secondary route noticed"], next:commonNext
+      },
+      finalAdvantage:{
+        heading:"The Apparent Weakness Is a Decoy",
+        summary:"The ritual reacts violently, revealing its true structure at a cost.",
+        paragraphs:[
+          `You disrupt the most visible anchor. It was designed to draw exactly that response. Energy lashes across the chamber. ${injury}`,
+          `The surge reveals the genuine anchor for a moment beneath the central platform. You lose the chance to begin with advantage, but you now understand what must be destroyed during combat.`,
+          `The failure changes the battlefield rather than ending the story.`
+        ],
+        changes:[damage?`-${damage} HP`:"Position lost","True ritual anchor revealed","Final combat begins without advantage"], clues:1, next:combatNext(false,true)
+      },
+      finalSocial:{
+        heading:"Fear Holds the Followers in Place",
+        summary:"Your appeal does not break their loyalty, but exposes which follower is least committed.",
+        paragraphs:[
+          `Your words reach the chamber, but the leader answers with a threat directed at the followers' families. No one openly defects.`,
+          `One guard nevertheless avoids your eyes and loosens their grip on a weapon. You know who may hesitate when the fighting begins.`,
+          `The final confrontation starts without a broad advantage, though the narrative has established one possible weak point among the enemy ranks.`
+        ],
+        changes:["Potential reluctant enemy identified","Final combat begins without advantage"], next:combatNext(false,true)
+      }
+    };
+
+    let data=(success?successMap:failureMap)[choice.outcome] || (success?successMap.clue:failureMap.clue);
+    if (data.treasure) {
+      const treasure=pick(treasureTable);
+      data.item=cap(treasure.name);
+      data.gold=treasure.effect==="gold"?treasure.value:0;
+      data.paragraphs[1]=`Inside is ${data.item}, alongside traces showing that the compartment was accessed recently by someone connected to ${ctx.threat}.`;
+      data.changes=[`${data.item} added to inventory`,"Cache linked to the threat","+20 XP"];
+    }
+    data.damage=damage;
+    return data;
+  }
+
+  function injuryCause(skill,ctx) {
+    const causes={
+      Investigation:`a concealed edge or unstable fitting tears through your guard while you manipulate the evidence at ${ctx.location}.`,
+      Survival:`the ground gives way under your footing and you strike exposed stone while following the trail.`,
+      Perception:`your attention stays fixed on the distant sign long enough for a hidden hazard to catch you.`,
+      Stealth:`you shift weight onto unstable debris and twist hard while trying to stop the resulting noise.`,
+      Arcana:`the object releases a brief pulse of stored energy when your interpretation reaches the wrong sequence.`,
+      History:`you test the wrong feature based on a misleading resemblance and trigger an old defensive mechanism.`,
+      Persuasion:`the tense exchange draws hostile attention, and you are shoved or struck during the confusion.`,
+      Insight:`you focus on the speaker's reaction and miss a nearby accomplice moving against you.`,
+      Intimidation:`the target responds defensively, turning the confrontation briefly physical.`
+    };
+    return causes[skill] || `the attempt exposes you to a hazard you could not fully anticipate at ${ctx.location}.`;
+  }
+
+  function presentDecisionResult({success,heading,summary,rollText="",paragraphs=[],changes=[],next}) {
+    const currentLocation=state.currentScene?.location || "The Road";
+    state.currentScene={
+      type:"result",
+      title:heading,
+      location:currentLocation,
+      text:[summary,...paragraphs],
+      choices:[next]
+    };
+    $("chapterLabel").textContent="DECISION RESULT";
+    $("locationLabel").textContent=currentLocation.toUpperCase();
+    $("sceneTitle").textContent=heading;
+    $("storyText").innerHTML=`
+      <section class="decision-result ${success?"result-success":"result-failure"}">
+        <div class="result-status">${success?"SUCCESS":"CONSEQUENCE"}</div>
+        ${rollText?`<div class="result-roll">${rollText}</div>`:""}
+        <p class="result-summary">${summary}</p>
+        ${paragraphs.map(p=>`<p>${p}</p>`).join("")}
+        ${changes.length?`<div class="what-changed"><h3>What changed</h3><ul>${changes.map(c=>`<li>${c}</li>`).join("")}</ul></div>`:""}
+      </section>`;
+    $("choiceList").innerHTML=`
+      <button class="choice result-continue" data-result-next>
+        <span class="choice-index">→</span>
+        <span><strong>${next.label}</strong></span>
+        <span class="choice-detail">${next.detail || "Continue when ready"}</span>
+      </button>`;
+    $("checkResult").classList.add("hidden");
+    $("choiceList").querySelector("[data-result-next]").addEventListener("click",()=>handleChoice(next));
+    renderSidebar();
+    autoSave();
+  }
+
+  async function resolveRestChoice(choice) {
+    const before=state.character.hp;
+    const heal = await rollDice(`1d${classData[state.character.className].hitDie}+${Math.max(1,mod(state.character.stats.con))}`, "Hit Die");
+    state.character.hp = Math.min(state.character.maxHp, state.character.hp + heal.total);
+    const recovered=state.character.hp-before;
+    state.flags.rested = true;
+    if (state.character.className==="fighter") state.character.resources["Second Wind"]=1;
+    if (state.character.className==="wizard") state.character.resources["Arcane Recovery"]=1;
+    renderSidebar();
+    presentDecisionResult({
+      success:true,
+      heading:"A Measured Rest",
+      summary:`You recover ${recovered} hit point${recovered===1?"":"s"} and take stock of what has happened.`,
+      rollText:`Hit Die total: ${heal.total}`,
+      paragraphs:[
+        "You choose a defensible place, clean and bind your injuries, eat carefully, and listen for pursuit before allowing yourself to rest.",
+        "The recovery is limited by your maximum HP, and any restored class resources are listed below so the result is mechanically clear."
+      ],
+      changes:[`+${recovered} HP`,"Rest completed",...(state.character.className==="fighter"?["Second Wind restored"]:[]),...(state.character.className==="wizard"?["Arcane Recovery restored"]:[])],
+      next:{label:"Break camp and continue",detail:"Return to the adventure after reading the rest result",action:"continue"}
+    });
   }
 
   async function takeRest() {
