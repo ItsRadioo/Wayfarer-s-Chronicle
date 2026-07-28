@@ -1,30 +1,17 @@
-# Wayfarer’s Chronicle — Deliberate Choice Edition
+# Wayfarer's Chronicle — Longform Campaign Build
 
-A fully offline solo fantasy roleplaying web game.
+Open `index.html` to play. For reliable offline installation and service-worker support, serve the folder through any small local web server.
 
-## Core interaction rule
+## This build demonstrates
 
-Every interaction now follows this sequence:
+- Detailed world and city introduction before player decisions
+- Narrative passages that use **Continue** instead of constant choices
+- Choices only at genuine crossroads, conversations, shopping, and combat
+- Brief but memorable physical descriptions for every named NPC
+- Explicit result ledgers explaining rolls, causes, HP changes, discoveries, and consequences
+- A working bridge-market shop
+- A turn-based combat encounter with animated d20 rolls
+- Persistent journal, codex, contacts, inventory, objectives, clues, and local saves
+- Multiple investigation routes that reconnect without erasing their consequences
 
-1. The player makes a choice.
-2. Any required animated die roll completes.
-3. A dedicated result page explains what physically happened.
-4. Mechanical changes are listed explicitly.
-5. The game pauses indefinitely for reading.
-6. The player presses a clearly labelled button to continue or begin combat.
-
-The game never advances a scene on a timer after a choice. Failed checks can still cost HP, position, trust, time, or opportunity, but the cause is described and the player always receives a meaningful consequence, partial clue, changed route, or new tactical situation.
-
-## Run locally
-
-Extract the folder. From inside it run:
-
-    py -m http.server 8080
-
-Then open:
-
-    http://localhost:8080
-
-Mac/Linux may use `python3 -m http.server 8080`.
-
-No external library, API, font, or internet asset is required.
+This is a substantial playable vertical slice of the redesigned campaign rhythm, ending at the threshold of Act II.
